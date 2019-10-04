@@ -1,4 +1,5 @@
 import { GraphQLServer } from 'graphql-yoga';
+import uuid from 'uuid/v4';
 
 const users = [
     {
@@ -20,7 +21,7 @@ const users = [
     }
 ];
 
-const posts = [
+let posts = [
     {
         id: '103',
         title: 'Producer',
@@ -44,7 +45,7 @@ const posts = [
     }
 ];
 
-const comments = [
+let comments = [
     {
         id: 14,
         text: 'ciao',
@@ -78,6 +79,32 @@ const typeDefs = `
         comments(query: String): [Comment!]!
         me: User!
         post: Post!
+    }
+
+    type Mutation {
+        createUser(data: CreateUserInput): User!
+        deleteUser(id: ID!): User!
+        createPost(data: CreatePostInput): Post!
+        createComment(data: CreateCommentInput): Comment!
+    }
+
+    input CreateUserInput {
+        name: String!
+        email: String!
+        age: Int
+    }
+    
+    input CreatePostInput {
+        title: String!
+        body: String!
+        published: Boolean!
+        author: ID!
+    }
+
+    input CreateCommentInput {
+        text: String!
+        author: ID!
+        post: ID!
     }
 
     type Comment {
@@ -117,8 +144,12 @@ const resolvers = {
         posts: (parent, args, ctx, info) => {
             if (!args.query) return posts;
             return posts.filter(el => {
-                const hasTitle = el.title.toLowerCase().includes(args.query.toLowerCase());
-                const hasBody = el.body.toLowerCase().includes(args.query.toLowerCase());
+                const hasTitle = el.title
+                    .toLowerCase()
+                    .includes(args.query.toLowerCase());
+                const hasBody = el.body
+                    .toLowerCase()
+                    .includes(args.query.toLowerCase());
                 return hasTitle || hasBody;
             });
         },
@@ -126,15 +157,80 @@ const resolvers = {
             if (!args.query) {
                 return comments;
             }
-            return comments.filter(comm => comm.id == args.query || comm.text === args.query);
+            return comments.filter(
+                comm => comm.id == args.query || comm.text === args.query
+            );
         }
     },
+
+    Mutation: {
+        createUser: (parent, args, ctx, info) => {
+            const emailTaken = users.some(
+                user => user.email === args.data.email
+            );
+            if (emailTaken) throw new Error('Email taken');
+            const user = {
+                id: uuid(),
+                ...args.data
+            };
+            users.push(user);
+            return user;
+        },
+        deleteUser: (parent, args, ctx, info) => {
+            const userIndex = users.findIndex(user => {
+                return user.id === args.id;
+            });
+            if (userIndex === -1) {
+                throw new Error('User not found');
+            }
+
+            const deletedUsers = users.splice(userIndex, 1);
+            posts = posts.filter(el => {
+                const match = el.author !== args.id;
+                if (match) {
+                    comments = comments.filter(() => comment.post !== post.id);
+                }
+                return !match;
+            });
+            comments = comments.filter(el => el.author !== args.id);
+            return deletedUsers[0];
+        },
+
+        createPost: (parent, args, ctx, info) => {
+            if (!users.some(user => user.id === args.data.author))
+                throw new Error('Invalid user');
+            const post = {
+                id: uuid(),
+                ...args.data
+            };
+            posts.push(post);
+            return post;
+        },
+        createComment: (parent, args, ctx, info) => {
+            if (
+                !users.some(user => {
+                    return user.id === args.data.author;
+                }) &&
+                !posts.some(el => {
+                    return el.id === post;
+                })
+            ) {
+                throw new Error('Invalid post or user');
+            }
+            const comment = {
+                id: uuid(),
+                ...args.data
+            };
+            comments.push(comment);
+            return comment;
+        }
+    },
+
     Post: {
         author: (parent, args, ctx, info) => {
             return users.find(user => user.id === parent.author);
         },
         comments: (parent, args, ctx, info) => {
-            console.log(parent);
             return comments.filter(comment => comment.post === parent.id);
         }
     },

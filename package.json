@@ -1,0 +1,19 @@
+{
+    "name": "node-etc",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "nodemon src/index.js --exec babel-node"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "babel-cli": "^6.26.0",
+        "babel-preset-env": "^1.7.0"
+    },
+    "dependencies": {
+        "graphql-yoga": "^1.18.3"
+    }
+}

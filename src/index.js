@@ -188,7 +188,9 @@ const resolvers = {
             posts = posts.filter(el => {
                 const match = el.author !== args.id;
                 if (match) {
-                    comments = comments.filter(() => comment.post !== post.id);
+                    comments = comments.filter(
+                        comment => comment.post !== el.id
+                    );
                 }
                 return !match;
             });
